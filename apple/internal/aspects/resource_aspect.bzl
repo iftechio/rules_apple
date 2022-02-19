@@ -144,6 +144,12 @@ def _apple_resource_aspect_impl(target, ctx):
         bucketize_args["swift_module"] = module_names[0] if module_names else None
         collect_args["res_attrs"] = ["data"]
         owner = str(ctx.label)
+    
+    elif ctx.rule.kind == "apple_mixed_source_library":
+        module_names = [x.name for x in target[SwiftInfo].direct_modules if x.swift]
+        bucketize_args["swift_module"] = module_names[0] if module_names else None
+        collect_args["res_attrs"] = ["data"]
+        owner = str(ctx.label)
 
     elif ctx.rule.kind in ["apple_static_framework_import", "apple_static_xcframework_import"]:
         if AppleFrameworkImportBundleInfo in target:
