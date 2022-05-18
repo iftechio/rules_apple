@@ -47,7 +47,8 @@ def insert_alticons(plist_data, alticons):
       "CFBundleIconFiles": sorted(set(map(iconname_from_filename, os.listdir(alticon)))),
     }
   plist_data["CFBundleIcons"]["CFBundleAlternateIcons"] = alticons_data
-  plist_data["CFBundleIcons~ipad"]["CFBundleAlternateIcons"] = alticons_data
+  if "CFBundleIcons~ipad" in plist_data:
+    plist_data["CFBundleIcons~ipad"]["CFBundleAlternateIcons"] = alticons_data
 
 
 def main(argv):
