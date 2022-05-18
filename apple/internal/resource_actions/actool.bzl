@@ -227,6 +227,7 @@ def compile_asset_catalog(
         "--minimum-deployment-target",
         platform_prerequisites.minimum_os,
         "--compress-pngs",
+        "--include-all-app-icons"
     ]
 
     if xcode_support.is_xcode_at_least_version(platform_prerequisites.xcode_version_config, "8"):
