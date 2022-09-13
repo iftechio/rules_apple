@@ -8,12 +8,23 @@ rules repos (this doc is not duplicated across the repos):
 
 # Maintainers
 
-The current maintainers are:
+The current maintainers can be seen in the [CODEOWNERS](CODEOWNERS)
+file.
 
-- @keith
-- @segiddins
-- @brentleyjones
-- @thii
+## How to become a maintainer
+
+These rules are community maintained. Any community member can become a
+maintainer. Ideally we have a large set of maintainers who can work on
+improving different parts of the rules for different use cases. In order
+to become a maintainer you must demonstrate proficiency working on these
+bazel rules. The best way to do this is to contribute multiple
+non-trivial features over time. If you would like to become a
+maintainer, once you have a collection of non-trivial changes, reach out
+to Keith Smiley (keithbsmiley@gmail.com) with links to your changes.
+Once you have met these criteria the existing maintainers will vote and
+require a 2/3rds majority to add new maintainers. Otherwise the
+maintainers will provide specific feedback on what they would like to
+see before granting access.
 
 # Upstream changes
 
@@ -93,6 +104,7 @@ is the recommended process:
   GitHub](https://github.com/bazelbuild/rules_apple/compare/0.21.1...HEAD),
   and collect the most notable user facing commits for the release
   notes.
+- Set the new version number in `MODULE.bazel`
 - Starting with `apple_support` create a new release with this template
   for the notes:
 
@@ -131,9 +143,6 @@ SHA-256 digest: `TBD`
 
 ### Notes
 
-- The rules aren't currently following true semantic versioning, but in
-  general the minor version should be bumped for most changes, and the
-  patch only for very small releases.
 - It's highly recommended that rules maintainers track more closely with
   the HEAD of the rules repos than with the releases.
 - In general before releasing the HEAD of the rules repos should be

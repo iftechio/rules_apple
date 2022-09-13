@@ -37,6 +37,8 @@ bzl_library(
     deps = [
         "//apple/internal:apple_framework_import",
         "//apple/internal:apple_universal_binary",
+        "//apple/internal:apple_xcframework_import",
+        "//apple/internal:local_provisioning_profiles",
         "//apple/internal:xcframework_rules",
     ],
 )
@@ -47,6 +49,18 @@ bzl_library(
     deps = [
         "//apple/internal:linking_support",
         "//apple/internal:rule_factory",
+    ],
+)
+
+bzl_library(
+    name = "apple_static_library",
+    srcs = ["apple_static_library.bzl"],
+    deps = [
+        ":providers",
+        "//apple/internal:linking_support",
+        "//apple/internal:rule_factory",
+        "//apple/internal:transition_support",
+        "@bazel_skylib//lib:dicts",
     ],
 )
 
@@ -127,6 +141,7 @@ bzl_library(
         "//apple/internal/resource_rules:apple_bundle_import",
         "//apple/internal/resource_rules:apple_core_data_model",
         "//apple/internal/resource_rules:apple_core_ml_library",
+        "//apple/internal/resource_rules:apple_intent_library",
         "//apple/internal/resource_rules:apple_resource_bundle",
         "//apple/internal/resource_rules:apple_resource_group",
     ],
@@ -159,6 +174,8 @@ bzl_library(
     srcs = ["versioning.bzl"],
     deps = [
         ":providers",
+        "//apple/internal:apple_toolchains",
+        "@bazel_skylib//lib:dicts",
     ],
 )
 

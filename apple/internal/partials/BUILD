@@ -84,6 +84,7 @@ bzl_library(
     deps = [
         "//apple/internal:intermediates",
         "//apple/internal:processor",
+        "//apple/internal/utils:clang_rt_dylibs",
         "@bazel_skylib//lib:partial",
         "@build_bazel_apple_support//lib:apple_support",
     ],
@@ -111,9 +112,11 @@ bzl_library(
         "//apple/internal:__pkg__",
     ],
     deps = [
+        "//apple:providers",
         "//apple/internal/utils:defines",
         "@bazel_skylib//lib:partial",
-        "@bazel_skylib//lib:paths",
+        "@bazel_skylib//lib:shell",
+        "@build_bazel_apple_support//lib:apple_support",
     ],
 )
 
@@ -175,6 +178,7 @@ bzl_library(
     ],
     deps = [
         "//apple:providers",
+        "//apple/internal:bitcode_support",
         "//apple/internal:codesigning_support",
         "//apple/internal:intermediates",
         "//apple/internal:processor",
@@ -304,14 +308,14 @@ bzl_library(
 )
 
 bzl_library(
-    name = "swift_static_framework",
-    srcs = ["swift_static_framework.bzl"],
+    name = "swift_dynamic_framework",
+    srcs = ["swift_dynamic_framework.bzl"],
     visibility = [
         "//apple/internal:__pkg__",
     ],
     deps = [
+        "//apple/internal:intermediates",
         "//apple/internal:processor",
-        "//apple/internal:swift_info_support",
         "@bazel_skylib//lib:partial",
         "@bazel_skylib//lib:paths",
     ],

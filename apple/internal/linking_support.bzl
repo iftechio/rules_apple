@@ -107,6 +107,7 @@ def _register_binary_linking_action(
         bundle_loader = None,
         entitlements = None,
         extra_linkopts = [],
+        extra_link_inputs = [],
         platform_prerequisites,
         stamp):
     """Registers linking actions using the Starlark Apple binary linking API.
@@ -130,6 +131,7 @@ def _register_binary_linking_action(
             binary or bundle being built. The entitlements will be embedded in a special section
             of the binary.
         extra_linkopts: Extra linkopts to add to the linking action.
+        extra_link_inputs: Extra link inputs to add to the linking action.
         platform_prerequisites: The platform prerequisites.
         stamp: Whether to include build information in the linked binary. If 1, build
             information is always included. If 0, the default build information is always
@@ -181,6 +183,7 @@ def _register_binary_linking_action(
         linkopts.extend(rule_descriptor.extra_linkopts)
 
     linkopts.extend(extra_linkopts)
+    link_inputs.extend(extra_link_inputs)
 
     all_avoid_deps = list(avoid_deps)
     if bundle_loader:
@@ -189,20 +192,12 @@ def _register_binary_linking_action(
         linkopts.extend(["-bundle_loader", bundle_loader_file.path])
         link_inputs.append(bundle_loader_file)
 
-    # TODO: This is a hack to support bazel 5.x and 6.x at the same time after
-    # should_lipo was removed from the arguments list, but is still required
-    # before that point. The addition of link_multi_arch_static_library probably
-    # doesn't line up perfectly, but should be good enough.
-    kwargs = {"should_lipo": False}
-    if getattr(apple_common, "link_multi_arch_static_library", False):
-        kwargs = {}
     linking_outputs = apple_common.link_multi_arch_binary(
         ctx = ctx,
         avoid_deps = all_avoid_deps,
         extra_linkopts = linkopts,
         extra_link_inputs = link_inputs,
         stamp = stamp,
-        **kwargs
     )
 
     fat_binary = ctx.actions.declare_file("{}_lipobin".format(ctx.label.name))
@@ -258,6 +253,7 @@ def _register_static_library_linking_action(ctx):
 
     return struct(
         library = fat_library,
+        objc = linking_outputs.objc,
         outputs = linking_outputs.outputs,
         output_groups = linking_outputs.output_groups,
     )

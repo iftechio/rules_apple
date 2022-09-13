@@ -99,12 +99,15 @@ function create_ios_unit_tests() {
 
   cat > ios/pass_unit_test.m <<EOF
 #import <XCTest/XCTest.h>
+#import <XCTest/XCUIApplication.h>
 
 @interface PassingUnitTest : XCTestCase
 
 @end
 
-@implementation PassingUnitTest
+@implementation PassingUnitTest {
+  XCUIApplication *_app;
+}
 
 - (void)testPass {
   XCTAssertEqual(1, 1, @"should pass");
@@ -123,6 +126,11 @@ function create_ios_unit_tests() {
   XCTAssertEqualObjects([NSProcessInfo processInfo].environment[@"SomeVariable2"], @"Its My Second Variable", @"should pass");
   XCTAssertEqualObjects([NSProcessInfo processInfo].environment[@"REFERENCE_DIR"], @"/Project/My Tests/ReferenceImages", @"should pass");
   XCTAssertEqualObjects([NSProcessInfo processInfo].environment[@"IMAGE_DIR"], @"/Project/My Tests/Images", @"should pass");
+}
+
+- (void)uiTestSymbols { 
+  // This function triggers https://github.com/google/xctestrunner/blob/7f8fc81b10c8d93f09f6fe38b2a3f37ba25336a6/test_runner/xctest_session.py#L382
+  _app = [[XCUIApplication alloc] init];
 }
 
 @end
@@ -220,6 +228,7 @@ ios_unit_test(
 
 swift_library(
     name = "pass_unit_swift_test_lib",
+    testonly = True,
     srcs = ["pass_unit_test.swift"],
 )
 
@@ -365,6 +374,65 @@ ios_unit_test(
       "--command_line_args=--flag",
       "--command_line_args=First,Second",
     ],
+)
+EOF
+}
+
+function create_ios_unit_tests_test_filter() {
+  if [[ ! -f ios/BUILD ]]; then
+    fail "create_sim_runners must be called first."
+  fi
+
+  cat > ios/test_filter_unit_test.m <<EOF
+#import <XCTest/XCTest.h>
+#import <XCTest/XCUIApplication.h>
+
+@interface TestFilterUnitTest : XCTestCase
+
+@end
+
+@implementation TestFilterUnitTest {
+  XCUIApplication *_app;
+}
+
+- (void)testPass {
+  XCTAssertEqual(1, 1, @"should pass");
+}
+
+- (void)testPass2 {
+  XCTAssertEqual(1, 1, @"should pass");
+}
+
+- (void)testPass3 {
+  XCTAssertEqual(1, 1, @"should pass");
+}
+
+@end
+EOF
+
+  cat > ios/TestFilterUnitTest-Info.plist <<EOF
+<plist version="1.0">
+<dict>
+        <key>CFBundleExecutable</key>
+        <string>TestFilterUnitTest</string>
+</dict>
+</plist>
+EOF
+
+  cat >> ios/BUILD <<EOF
+objc_library(
+    name = "test_filter_unit_test_lib",
+    srcs = ["test_filter_unit_test.m"],
+)
+
+ios_unit_test(
+    name = "TestFilterUnitTest",
+    infoplists = ["TestFilterUnitTest-Info.plist"],
+    deps = [":test_filter_unit_test_lib"],
+    minimum_os_version = "9.0",
+    test_host = ":app",
+    runner = ":ios_x86_64_sim_runner",
+    test_filter = "$1",
 )
 EOF
 }
@@ -570,6 +638,97 @@ function test_ios_unit_test_with_multi_equal_env() {
   do_ios_test --test_env=ENV_KEY1=ENV_VALUE2=ENV_VALUE3 //ios:EnvUnitTest || fail "should pass"
 
   expect_log "Test Suite 'EnvUnitTest' passed"
+}
+
+function test_ios_unit_test_pass_asan() {
+  create_sim_runners
+  create_ios_unit_tests
+  do_ios_test --features=asan //ios:PassingUnitTest || fail "should pass"
+
+  expect_log "Test Suite 'PassingUnitTest' passed"
+  expect_log "Test Suite 'PassingUnitTest.xctest' passed"
+  expect_log "Executed 4 tests, with 0 failures"
+}
+
+function test_with_test_filter_build_attribute() {
+  create_sim_runners
+  create_test_host_app
+  create_ios_unit_tests_test_filter TestFilterUnitTest/testPass2
+  do_ios_test //ios:TestFilterUnitTest || fail "should pass"
+
+  expect_log "Test Case '-\[TestFilterUnitTest testPass2\]' passed"
+  expect_log "Test Suite 'TestFilterUnitTest' passed"
+  expect_log "Test Suite 'TestFilterUnitTest.xctest' passed"
+  expect_log "Executed 1 test, with 0 failures"
+}
+
+function test_ios_unit_test_with_multi_test_filter_build_attribute() {
+  create_sim_runners
+  create_test_host_app
+  create_ios_unit_tests_test_filter TestFilterUnitTest/testPass2,TestFilterUnitTest/testPass3 
+  do_ios_test //ios:TestFilterUnitTest || fail "should pass"
+
+  expect_log "Test Case '-\[TestFilterUnitTest testPass2\]' passed"
+  expect_log "Test Case '-\[TestFilterUnitTest testPass3\]' passed"
+  expect_log "Test Suite 'TestFilterUnitTest' passed"
+  expect_log "Test Suite 'TestFilterUnitTest.xctest' passed"
+  expect_log "Executed 2 tests, with 0 failures"
+}
+
+function test_ios_unit_test_with_skip_test_filter_build_attribute() {
+  create_sim_runners
+  create_test_host_app
+  create_ios_unit_tests_test_filter -TestFilterUnitTest/testPass
+  do_ios_test //ios:TestFilterUnitTest || fail "should pass"
+
+  expect_not_log "Test Case '-\[TestFilterUnitTest testPass\]' passed"
+  expect_log "Test Case '-\[TestFilterUnitTest testPass2\]' passed"
+  expect_log "Test Case '-\[TestFilterUnitTest testPass3\]' passed"
+  expect_log "Test Suite 'TestFilterUnitTest' passed"
+  expect_log "Test Suite 'TestFilterUnitTest.xctest' passed"
+  expect_log "Executed 2 tests, with 0 failures"
+}
+
+function test_ios_unit_test_multi_skip_test_filter_build_attribute() {
+  create_sim_runners
+  create_test_host_app
+  create_ios_unit_tests_test_filter -TestFilterUnitTest/testPass,-TestFilterUnitTest/testPass2 
+  do_ios_test //ios:TestFilterUnitTest || fail "should pass"
+
+  expect_not_log "Test Case '-\[TestFilterUnitTest testPass\]' passed"
+  expect_not_log "Test Case '-\[TestFilterUnitTest testPass2\]' passed"
+  expect_log "Test Case '-\[TestFilterUnitTest testPass3\]' passed"
+  expect_log "Test Suite 'TestFilterUnitTest' passed"
+  expect_log "Test Suite 'TestFilterUnitTest.xctest' passed"
+  expect_log "Executed 1 test, with 0 failures"
+}
+
+function test_ios_unit_test_with_skip_and_only_filters_build_attribute() {
+  create_sim_runners
+  create_test_host_app
+  create_ios_unit_tests_test_filter TestFilterUnitTest,-TestFilterUnitTest/testPass2
+  do_ios_test //ios:TestFilterUnitTest || fail "should pass"
+
+  expect_log "Test Case '-\[TestFilterUnitTest testPass\]' passed"
+  expect_not_log "Test Case '-\[TestFilterUnitTest testPass2\]' passed"
+  expect_log "Test Case '-\[TestFilterUnitTest testPass3\]' passed"
+  expect_log "Test Suite 'TestFilterUnitTest' passed"
+  expect_log "Test Suite 'TestFilterUnitTest.xctest' passed"
+  expect_log "Executed 2 tests, with 0 failures"
+}
+
+function test_ios_unit_test_with_build_attribute_and_test_env_filters() {
+  create_sim_runners
+  create_test_host_app
+  create_ios_unit_tests_test_filter TestFilterUnitTest/testPass2
+  do_ios_test --test_filter=TestFilterUnitTest/testPass3 //ios:TestFilterUnitTest || fail "should pass"
+
+  expect_not_log "Test Case '-\[PassingUnitTest testPass\]' passed"
+  expect_log "Test Case '-\[TestFilterUnitTest testPass2\]' passed"
+  expect_log "Test Case '-\[TestFilterUnitTest testPass3\]' passed"
+  expect_log "Test Suite 'TestFilterUnitTest' passed"
+  expect_log "Test Suite 'TestFilterUnitTest.xctest' passed"
+  expect_log "Executed 2 tests, with 0 failures"
 }
 
 run_suite "ios_unit_test with iOS test runner bundling tests"
