@@ -1924,7 +1924,9 @@ def _ios_sticker_pack_extension_impl(ctx):
         actions = actions,
         platform_prerequisites = platform_prerequisites,
         rule_label = label,
+        strip_bitcode = True,
         xcode_stub_path = rule_descriptor.stub_binary_path,
+        resolved_xctoolrunner = apple_mac_toolchain_info.resolved_xctoolrunner
     )
 
     archive_for_embedding = outputs.archive_for_embedding(
