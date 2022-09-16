@@ -389,6 +389,7 @@ def _watchos_application_impl(ctx):
         platform_prerequisites = platform_prerequisites,
         rule_label = label,
         xcode_stub_path = rule_descriptor.stub_binary_path,
+        strip_unused_archs = True
     )
 
     bundle_verification_targets = [
