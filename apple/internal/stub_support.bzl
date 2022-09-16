@@ -64,6 +64,8 @@ def _create_stub_binary(
         platform = platform_prerequisites.platform.name_in_plist.lower()
         if platform == "watchos":
             archs = ["armv7k", "arm64_32"]
+        if platform == "iphoneos":
+            archs = ["arm64"]
         flags = ""
         for arch in archs:
             flags += "-extract_family {} ".format(arch)
