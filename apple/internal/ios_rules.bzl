@@ -1929,6 +1929,7 @@ def _ios_sticker_pack_extension_impl(ctx):
         platform_prerequisites = platform_prerequisites,
         rule_label = label,
         xcode_stub_path = rule_descriptor.stub_binary_path,
+        strip_unused_archs = True,
     )
 
     bitcode_striped_binary_artifact = bitcode_support.strip_bitcode(
