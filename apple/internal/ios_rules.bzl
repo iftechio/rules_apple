@@ -1943,6 +1943,7 @@ def _ios_sticker_pack_extension_impl(ctx):
         platform_prerequisites = platform_prerequisites,
         rule_label = label,
         xcode_stub_path = rule_descriptor.stub_binary_path,
+        strip_unused_archs = True,
     )
 
     archive_for_embedding = outputs.archive_for_embedding(

@@ -33,7 +33,8 @@ def _create_stub_binary(
         output_discriminator = None,
         platform_prerequisites,
         rule_label,
-        xcode_stub_path):
+        xcode_stub_path,
+        strip_unused_archs = False):
     """Returns a symlinked stub binary from the Xcode distribution.
 
     Args:
@@ -44,6 +45,7 @@ def _create_stub_binary(
         rule_label: The label of the target being analyzed.
         xcode_stub_path: The Xcode SDK root relative path to where the stub binary is to be copied
             from.
+        strip_unused_archs: Whether to strip unused architectures from the stub binary.
 
     Returns:
         A File reference to the stub binary artifact.
@@ -55,32 +57,37 @@ def _create_stub_binary(
         file_name = "StubBinary",
     )
 
-    if bitcode_support.bitcode_mode_string(platform_prerequisites.apple_fragment) == "none":
-        apple_support.run(
-            actions = actions,
-            apple_fragment = platform_prerequisites.apple_fragment,
-            executable = "/usr/bin/xcrun",
-            arguments = ["bitcode_strip", "-r", "__BAZEL_XCODE_SDKROOT__/{}".format(xcode_stub_path), "-o", binary_artifact.path],
-            mnemonic = "BitcodeStripStub",
-            outputs = [binary_artifact],
-            xcode_path_resolve_level = apple_support.xcode_path_resolve_level.args,
-            progress_message = "Removing bitcode from stub executable for %s" % (rule_label),
-            xcode_config = platform_prerequisites.xcode_version_config,
+    # TODO(b/79323243): Replace this with a symlink instead of a hard copy.
+    command = "cp -f \"$SDKROOT/{xcode_stub_path}\" {output_path}".format(
+        output_path = binary_artifact.path,
+        xcode_stub_path = xcode_stub_path,
+    )
+
+    if strip_unused_archs:
+        archs = []
+        platform = platform_prerequisites.platform.name_in_plist.lower()
+        if platform == "watchos":
+            archs = ["armv7k", "arm64_32"]
+        if platform == "iphoneos":
+            archs = ["arm64"]
+        flags = ""
+        for arch in archs:
+            flags += "-extract_family {} ".format(arch)
+        command = "lipo \"$SDKROOT/{xcode_stub_path}\" {flags} -output {output_path}".format(
+            output_path = binary_artifact.path,
+            flags = flags,
+            xcode_stub_path = xcode_stub_path,
         )
-    else:
-        # TODO(b/79323243): Replace this with a symlink instead of a hard copy.
-        apple_support.run_shell(
-            actions = actions,
-            apple_fragment = platform_prerequisites.apple_fragment,
-            command = "cp -f \"$SDKROOT/{xcode_stub_path}\" {output_path}".format(
-                output_path = binary_artifact.path,
-                xcode_stub_path = xcode_stub_path,
-            ),
-            mnemonic = "CopyStubExecutable",
-            outputs = [binary_artifact],
-            progress_message = "Copying stub executable for %s" % (rule_label),
-            xcode_config = platform_prerequisites.xcode_version_config,
-        )
+
+    apple_support.run_shell(
+        actions = actions,
+        apple_fragment = platform_prerequisites.apple_fragment,
+        command = command,
+        mnemonic = "CopyStubExecutable",
+        outputs = [binary_artifact],
+        progress_message = "Copying stub executable for %s" % (rule_label),
+        xcode_config = platform_prerequisites.xcode_version_config,
+    )
     return binary_artifact
 
 stub_support = struct(
