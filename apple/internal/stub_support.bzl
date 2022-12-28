@@ -62,7 +62,7 @@ def _create_stub_binary(
         actions = actions,
         apple_fragment = platform_prerequisites.apple_fragment,
         executable = "/usr/bin/xcrun",
-        arguments = ["bitcode_strip", "-r", "__BAZEL_XCODE_SDKROOT__/{}".format(xcode_stub_path), "-o", binary_artifact_strip_bitcode.path],
+        arguments = ["bitcode_strip", "-r", "__BAZEL_XCODE_SDKROOT__/{}".format(xcode_stub_path), "-keep_cs", "-o", binary_artifact_strip_bitcode.path],
         mnemonic = "BitcodeStripStub",
         outputs = [binary_artifact_strip_bitcode],
         xcode_path_resolve_level = apple_support.xcode_path_resolve_level.args,
