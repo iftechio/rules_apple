@@ -377,6 +377,15 @@ def mapc(_, toolargs):
       xcrunargs, print_output=True)
   return return_code
 
+def bitcode_strip(_, toolargs):
+  """Assemble the call to "xcrun mapc"."""
+  xcrunargs = ["xcrun", "bitcode_strip"]
+  _apply_realpath(toolargs)
+  xcrunargs += toolargs
+
+  return_code, _, _ = execute.execute_and_filter_output(
+      xcrunargs)
+  return return_code
 
 def main(argv):
   parser = argparse.ArgumentParser()
@@ -413,6 +422,9 @@ def main(argv):
   # MAPC Argument Parser
   mapc_parser = subparsers.add_parser("mapc")
   mapc_parser.set_defaults(func=mapc)
+
+  bitcode_strip_parser = subparsers.add_parser("bitcode_strip")
+  bitcode_strip_parser.set_defaults(func=bitcode_strip)
 
   # Parse the command line and execute subcommand
   args, toolargs = parser.parse_known_args(argv)

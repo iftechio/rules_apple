@@ -104,6 +104,10 @@ load(
     "clang_rt_dylibs",
 )
 load(
+    "@build_bazel_rules_apple//apple/internal:bitcode_support.bzl",
+    "bitcode_support",
+)
+load(
     "@build_bazel_rules_apple//apple:providers.bzl",
     "IosAppClipBundleInfo",
     "IosApplicationBundleInfo",
@@ -1945,6 +1949,14 @@ def _ios_sticker_pack_extension_impl(ctx):
         xcode_stub_path = rule_descriptor.stub_binary_path,
     )
 
+    bitcode_striped_binary_artifact = bitcode_support.strip_bitcode(
+        actions = actions,
+        binary_artifact = binary_artifact,
+        rule_label = label,
+        platform_prerequisites = platform_prerequisites,
+        resolved_xctoolrunner = apple_mac_toolchain_info.resolved_xctoolrunner,
+    )
+
     archive_for_embedding = outputs.archive_for_embedding(
         actions = actions,
         bundle_extension = bundle_extension,
@@ -1979,7 +1991,7 @@ def _ios_sticker_pack_extension_impl(ctx):
         ),
         partials.binary_partial(
             actions = actions,
-            binary_artifact = binary_artifact,
+            binary_artifact = bitcode_striped_binary_artifact,
             bundle_name = bundle_name,
             executable_name = executable_name,
             label_name = label.name,

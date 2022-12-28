@@ -14,6 +14,16 @@
 
 """Bitcode support."""
 
+load(
+    "@build_bazel_apple_support//lib:apple_support.bzl",
+    "apple_support",
+)
+
+load(
+    "@build_bazel_rules_apple//apple/internal:intermediates.bzl",
+    "intermediates",
+)
+
 def _bitcode_mode_string(apple_fragment):
     """Returns a string representing the current Bitcode mode."""
 
@@ -33,6 +43,43 @@ def _bitcode_mode_string(apple_fragment):
              bitcode_mode_string,
          ))
 
+def _strip_bitcode(
+    actions,
+    binary_artifact,
+    rule_label,
+    platform_prerequisites,
+    resolved_xctoolrunner,
+    output_discriminator = None):
+    """Strips bitcode from the binary.
+    """
+    intermediate = intermediates.file(
+        actions = actions,
+        target_name = rule_label.name,
+        output_discriminator = output_discriminator,
+        file_name = "BitcodeStriped",
+    )
+    args = [
+        "bitcode_strip",
+        binary_artifact.path,
+        "-r",
+        "-keep_cs",
+        "-o",
+        intermediate.path,
+    ]
+    apple_support.run(
+        actions = actions,
+        apple_fragment = platform_prerequisites.apple_fragment,
+        arguments = args,
+        executable = resolved_xctoolrunner.executable,
+        inputs = depset([binary_artifact], transitive = [resolved_xctoolrunner.inputs]),
+        input_manifests = resolved_xctoolrunner.input_manifests,
+        mnemonic = "StripBitcode",
+        outputs = [intermediate],
+        xcode_config = platform_prerequisites.xcode_version_config,
+    )
+    return intermediate
+
 bitcode_support = struct(
     bitcode_mode_string = _bitcode_mode_string,
+    strip_bitcode = _strip_bitcode,
 )
