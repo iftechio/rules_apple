@@ -19,10 +19,6 @@ load(
     "apple_support",
 )
 load(
-    "@build_bazel_rules_apple//apple/internal:bitcode_support.bzl",
-    "bitcode_support",
-)
-load(
     "@build_bazel_rules_apple//apple/internal:intermediates.bzl",
     "intermediates",
 )
@@ -56,11 +52,28 @@ def _create_stub_binary(
         output_discriminator = output_discriminator,
         file_name = "StubBinary",
     )
+    binary_artifact_strip_bitcode = intermediates.file(
+        actions = actions,
+        target_name = rule_label.name,
+        output_discriminator = output_discriminator,
+        file_name = "StubBinaryStriped",
+    )
+    apple_support.run(
+        actions = actions,
+        apple_fragment = platform_prerequisites.apple_fragment,
+        executable = "/usr/bin/xcrun",
+        arguments = ["bitcode_strip", "-r", "__BAZEL_XCODE_SDKROOT__/{}".format(xcode_stub_path), "-o", binary_artifact_strip_bitcode.path],
+        mnemonic = "BitcodeStripStub",
+        outputs = [binary_artifact_strip_bitcode],
+        xcode_path_resolve_level = apple_support.xcode_path_resolve_level.args,
+        progress_message = "Removing bitcode from stub executable for %s" % (rule_label),
+        xcode_config = platform_prerequisites.xcode_version_config,
+    )
 
     # TODO(b/79323243): Replace this with a symlink instead of a hard copy.
-    command = "cp -f \"$SDKROOT/{xcode_stub_path}\" {output_path}".format(
+    command = "cp -f \"{xcode_stub_path}\" {output_path}".format(
         output_path = binary_artifact.path,
-        xcode_stub_path = xcode_stub_path,
+        xcode_stub_path = binary_artifact_strip_bitcode.path,
     )
 
     if strip_unused_archs:
@@ -73,10 +86,10 @@ def _create_stub_binary(
         flags = ""
         for arch in archs:
             flags += "-extract_family {} ".format(arch)
-        command = "lipo \"$SDKROOT/{xcode_stub_path}\" {flags} -output {output_path}".format(
+        command = "lipo \"{xcode_stub_path}\" {flags} -output {output_path}".format(
             output_path = binary_artifact.path,
             flags = flags,
-            xcode_stub_path = xcode_stub_path,
+            xcode_stub_path = binary_artifact_strip_bitcode.path,
         )
 
     apple_support.run_shell(
@@ -84,6 +97,7 @@ def _create_stub_binary(
         apple_fragment = platform_prerequisites.apple_fragment,
         command = command,
         mnemonic = "CopyStubExecutable",
+        inputs = [binary_artifact_strip_bitcode],
         outputs = [binary_artifact],
         progress_message = "Copying stub executable for %s" % (rule_label),
         xcode_config = platform_prerequisites.xcode_version_config,
