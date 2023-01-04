@@ -71,13 +71,14 @@ def _create_stub_binary(
         if platform == "iphoneos":
             archs = ["arm64"]
         flags = ""
-        for arch in archs:
-            flags += "-extract_family {} ".format(arch)
-        command = "lipo \"$SDKROOT/{xcode_stub_path}\" {flags} -output {output_path}".format(
-            output_path = binary_artifact.path,
-            flags = flags,
-            xcode_stub_path = xcode_stub_path,
-        )
+        if len(archs) > 0:
+            for arch in archs:
+                flags += "-extract_family {} ".format(arch)
+            command = "lipo \"$SDKROOT/{xcode_stub_path}\" {flags} -output {output_path}".format(
+                output_path = binary_artifact.path,
+                flags = flags,
+                xcode_stub_path = xcode_stub_path,
+            )
 
     apple_support.run_shell(
         actions = actions,
